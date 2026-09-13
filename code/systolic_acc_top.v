@@ -30,7 +30,7 @@ module systolic_acc_top(
     genvar i;
     generate
         for (i=1; i<=4; i=i+1) begin: SB
-            stream_buffer A(
+            stream_buffer A_buffer(
                 .clk(clk),
                 .rst(rst),
                 .load(load_buffers_A),
@@ -41,7 +41,7 @@ module systolic_acc_top(
                 ),
                 .data_out(data_out_A[i-1])
             );
-            stream_buffer B(
+            stream_buffer B_buffer(
                 .clk(clk),
                 .rst(rst),
                 .load(load_buffers_B),
