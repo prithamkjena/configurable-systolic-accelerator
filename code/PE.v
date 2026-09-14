@@ -3,7 +3,7 @@
 module PE(
     input clk,
     input rst,
-    input [1:0] df_policy, // WS? IS? OS?
+    input os_mode, // Instead of sending entire df_policy, we just check if OS or not (Logic differs only with this)
     
     input signed [7:0] A_in,
     input signed [7:0] B_in,
@@ -24,10 +24,12 @@ module PE(
         else begin
             A_out <= A_in;
             B_out <= B_in;
-            if (df_policy == 2'b00) begin // OS
+            if (os_mode) begin
+                // OS: accumulate partial sums
                 accum <= accum + mac_result;
             end
-            else begin // WS / IS (01 / 10)
+            else begin
+                // WS / IS: replace partial sum
                 accum <= mac_result;         
             end
         end 

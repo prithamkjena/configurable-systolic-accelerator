@@ -25,6 +25,9 @@ module pe_array(
     localparam OS = 2'b00;
     localparam WS = 2'b01;
     localparam IS = 2'b10;
+
+    wire os_mode;
+    assign os_mode = (df_policy == OS);
     
     wire signed [7:0] A_wire [0:3][0:4]; // Row : Column
     wire signed [7:0] B_wire [0:3][0:4]; // Column : Row
@@ -39,20 +42,20 @@ module pe_array(
                 PE pe(
                     .A_in(A_wire[i][j]),
                     .B_in(
-                        (df_policy == OS) ? B_wire[j][i] : stationary[127 - 8*(i*4+j) -: 8] // OS : WS/IS
+                        os_mode ? B_wire[j][i] : stationary[127 - 8*(i*4+j) -: 8] // OS : WS/IS
                     ),
                     .psum_in(
-                        (df_policy == OS) ? 0 : psum_wire[j][i] // OS : WS/IS
+                        os_mode ? 0 : psum_wire[j][i] // OS : WS/IS
                     ),
                     .accum(pe_accum),
                     .A_out(A_wire[i][j+1]),
                     .B_out(B_wire[j][i+1]),
-                    .df_policy(df_policy),
+                    .os_mode(os_mode),
                     .clk(clk),
                     .rst(rst)
                 );
-                assign accum_wire[i][j] = (df_policy == OS) ? pe_accum : 0;
-                assign psum_wire[j][i+1] = (df_policy == OS) ? 0 : pe_accum;
+                assign accum_wire[i][j] = os_mode ? pe_accum : 0;
+                assign psum_wire[j][i+1] = os_mode ? 0 : pe_accum;
             end
         end
     endgenerate
