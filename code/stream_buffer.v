@@ -15,35 +15,98 @@ module stream_buffer (
     reg signed [7:0] buffer [0:6];
     reg [55:0] load_data;
 
-    integer k;
-    integer row;
-    integer col;
-    integer matrix_idx;
-
     // Generate the 7-element stream to be loaded
     always @(*) begin
-        load_data = 0;
+        // Default: all zeros
+        load_data = 56'b0;
 
-        for (k = 0; k < 7; k = k + 1) begin
+        if (transpose == 1'b0) begin
+            // Row-wise streaming
+            case (stream_idx)
+                2'd0:
+                    load_data = {
+                        matrix[127:120],
+                        matrix[119:112],
+                        matrix[111:104],
+                        matrix[103:96],
+                        24'b0
+                    };
 
-            // Delay = stream_idx
-            if (k >= stream_idx && (k-stream_idx) < 4) begin
+                2'd1:
+                    load_data = {
+                        8'b0,
+                        matrix[95:88],
+                        matrix[87:80],
+                        matrix[79:72],
+                        matrix[71:64],
+                        16'b0
+                    };
 
-                matrix_idx = k - stream_idx;
+                2'd2:
+                    load_data = {
+                        16'b0,
+                        matrix[63:56],
+                        matrix[55:48],
+                        matrix[47:40],
+                        matrix[39:32],
+                        8'b0
+                    };
 
-                if (transpose == 0) begin
-                    // Row-wise
-                    row = stream_idx;
-                    col = matrix_idx;
-                end
-                else begin
-                    // Column-wise
-                    row = matrix_idx;
-                    col = stream_idx;
-                end
+                2'd3:
+                    load_data = {
+                        24'b0,
+                        matrix[31:24],
+                        matrix[23:16],
+                        matrix[15:8],
+                        matrix[7:0]
+                    };
 
-                load_data[55 - 8*k -: 8] = matrix[127 - 8*(row*4 + col) -: 8];
-            end
+                default: load_data = 56'b0;
+            endcase
+        end
+        else begin
+            // Column-wise streaming
+            case (stream_idx)
+                2'd0:
+                    load_data = {
+                        matrix[127:120],
+                        matrix[95:88],
+                        matrix[63:56],
+                        matrix[31:24],
+                        24'b0
+                    };
+
+                2'd1:
+                    load_data = {
+                        8'b0,
+                        matrix[119:112],
+                        matrix[87:80],
+                        matrix[55:48],
+                        matrix[23:16],
+                        16'b0
+                    };
+
+                2'd2:
+                    load_data = {
+                        16'b0,
+                        matrix[111:104],
+                        matrix[79:72],
+                        matrix[47:40],
+                        matrix[15:8],
+                        8'b0
+                    };
+
+                2'd3:
+                    load_data = {
+                        24'b0,
+                        matrix[103:96],
+                        matrix[71:64],
+                        matrix[39:32],
+                        matrix[7:0]
+                    };
+
+                default: load_data = 56'b0;
+            endcase
         end
     end
 
