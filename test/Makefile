@@ -6,7 +6,7 @@ SIM ?= icarus
 FST ?= -fst # Use more efficient FST format
 TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
-PROJECT_SOURCES = project.v sram_64x16_bb.v
+PROJECT_SOURCES = project.v sram_16x8.v
 
 ifneq ($(GATES),yes)
 
@@ -24,12 +24,6 @@ COMPILE_ARGS    += -DSIM
 VERILOG_SOURCES += $(PDK_ROOT)/ihp-sg13cmos5l/libs.ref/sg13cmos5l_io/verilog/sg13cmos5l_io.v
 VERILOG_SOURCES += $(PDK_ROOT)/ihp-sg13cmos5l/libs.ref/sg13cmos5l_stdcell/verilog/sg13cmos5l_udp.v
 VERILOG_SOURCES += $(PDK_ROOT)/ihp-sg13cmos5l/libs.ref/sg13cmos5l_stdcell/verilog/sg13cmos5l_stdcell.v
-
-# SRAM
-SRAM_MODEL_DIR ?= $(PWD)/ihp_sram
-SRAM_MODELS += $(SRAM_MODEL_DIR)/RM_IHPSG13_1P_core_behavioral.v
-SRAM_MODELS += $(SRAM_MODEL_DIR)/RM_IHPSG13_1P_64x16_c2.v
-VERILOG_SOURCES += $(SRAM_MODELS)
 
 # this gets copied in by the GDS action workflow
 VERILOG_SOURCES += $(PWD)/gate_level_netlist.v

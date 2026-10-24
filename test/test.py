@@ -1,40 +1,86 @@
-# SPDX-FileCopyrightText: © 2024 Tiny Tapeout
+# SPDX-FileCopyrightText: © 2026 Pritham Kumar Jena
 # SPDX-License-Identifier: Apache-2.0
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles
+from cocotb.triggers import RisingEdge, Timer
 
 
 @cocotb.test()
-async def test_project(dut):
-    dut._log.info("Start")
+async def test_three_sram_banks(dut):
 
-    # Set the clock period to 10 us (100 KHz)
-    clock = Clock(dut.clk, 10, unit="us")
-    cocotb.start_soon(clock.start())
+    cocotb.start_soon(
+        Clock(dut.clk, 10, unit="ns").start()
+    )
 
-    # Reset
-    dut._log.info("Reset")
-    dut.ena.value = 1
+    # Initialize inputs.
+    dut.rst_n.value = 0
+    dut.ena.value = 0
     dut.ui_in.value = 0
     dut.uio_in.value = 0
-    dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)
+
+    await Timer(25, unit="ns")
+
     dut.rst_n.value = 1
+    await Timer(1, unit="ns")
 
-    dut._log.info("Test project behavior")
+    dut.ena.value = 1
 
-    # Set the input values you want to test
-    dut.ui_in.value = 20
-    dut.uio_in.value = 30
+    matrix_a = [
+        -128, -1, 0, 127,
+        1, -2, 42, -42,
+        13, -13, 64, -64,
+        100, -100, 85, -86,
+    ]
 
-    # Wait for one clock cycle to see the output values
-    await ClockCycles(dut.clk, 1)
+    matrix_b = [
+        5, 10, 15, 20,
+        -5, -10, -15, -20,
+        30, 40, 50, 60,
+        -30, -40, -50, -60,
+    ]
 
-    # The following assersion is just an example of how to check the output values.
-    # Change it to match the actual expected output of your module:
-    assert dut.uo_out.value == 50
+    # Write one byte to A and one byte to B per clock.
+    for address in range(16):
 
-    # Keep testing the module by changing the input values, waiting for
-    # one or more clock cycles, and asserting the expected output values.
+        dut.ui_in.value = matrix_a[address] & 0xFF
+        dut.uio_in.value = matrix_b[address] & 0xFF
+
+        await RisingEdge(dut.clk)
+        await Timer(1, unit="ns")
+
+    # Check SRAM A's stored bytes.
+    for address in range(16):
+
+        actual = int(dut.user_project.SRAM_A.mem[address].value)
+        expected = matrix_a[address] & 0xFF
+
+        assert actual == expected, (
+            f"SRAM A address {address}: "
+            f"expected 0x{expected:02X}, got 0x{actual:02X}"
+        )
+
+    # Check SRAM B's stored bytes.
+    for address in range(16):
+
+        actual = int(dut.user_project.SRAM_B.mem[address].value)
+        expected = matrix_b[address] & 0xFF
+
+        assert actual == expected, (
+            f"SRAM B address {address}: "
+            f"expected 0x{expected:02X}, got 0x{actual:02X}"
+        )
+
+    # C's memory was reset to zero and has not been written.
+    for address in range(16):
+
+        actual = int(dut.user_project.SRAM_C.mem[address].value)
+
+        assert actual == 0, (
+            f"SRAM C address {address} should be zero, got {actual}"
+        )
+
+    dut._log.info("PASS: SRAM A stores all 16 bytes correctly")
+    dut._log.info("PASS: SRAM B stores all 16 bytes correctly")
+    dut._log.info("PASS: SRAM A and B store independent data")
+    dut._log.info("PASS: SRAM C remains zero without writes")

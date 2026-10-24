@@ -39,9 +39,7 @@
 
   "//": "Save some time",
   "RUN_KLAYOUT_XOR": 0,
-
-  "//": "Changed for SRAM macro",
-  "RUN_KLAYOUT_DRC": 1, 
+  "RUN_KLAYOUT_DRC": 0,
 
   "//": "Don't put clock buffers on the outputs",
   "DESIGN_REPAIR_BUFFER_OUTPUT_PORTS": 0,
@@ -60,8 +58,7 @@
   "FP_IO_HLENGTH": 2,
   "FP_IO_VLENGTH": 2,
 
-  "//": "Changed for SRAM macro",
-  "FP_PDN_VPITCH": 11.24,
+  "FP_PDN_VPITCH": 50.0,
   "FP_PDN_VWIDTH": 2.1,
 
   "//": "Clock",
@@ -69,64 +66,10 @@
 
   "//": "Don't generate power rings",
   "FP_PDN_MULTILAYER": 0,
-  "PDN_CFG": "dir::pdn_cfg.tcl",
-  "ERROR_ON_PDN_VIOLATIONS": 0,
 
   "//": "MAGIC_DEF_LABELS may cause issues with LVS",
   "MAGIC_DEF_LABELS": 0,
 
   "//": "Only export pin area in LEF (without any connected nets)",
-  "MAGIC_WRITE_LEF_PINONLY": 1,
-
-  "MACROS": {
-    "RM_IHPSG13_1P_64x16_c2": {
-      "gds": [
-        "pdk_dir::libs.ref/sg13cmos5l_sram/gds/RM_IHPSG13_1P_64x16_c2.gds"
-      ],
-      "lef": [
-        "pdk_dir::libs.ref/sg13cmos5l_sram/lef/RM_IHPSG13_1P_64x16_c2.lef"
-      ],
-      "spice": [
-        "pdk_dir::libs.ref/sg13cmos5l_sram/cdl/RM_IHPSG13_1P_64x16_c2.cdl"
-      ],
-      "nl": [],
-      "spef": {},
-      "lib": {
-        "nom_typ_1p20V_25C": [
-          "pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_64x16_c2_typ_1p20V_25C.lib"
-        ],
-        "nom_fast_1p32V_m40C": [
-          "pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_64x16_c2_fast_1p32V_m55C.lib"
-        ],
-        "nom_slow_1p08V_125C": [
-          "pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_64x16_c2_slow_1p08V_125C.lib"
-        ]
-      },
-      "instances": {
-        "i_sram": {
-          "location": [3.36, 3.78],
-          "orientation": "FS"
-        }
-      }
-    }
-  },
-  "FP_MACRO_HORIZONTAL_HALO": 2,
-
-  "ROUTING_OBSTRUCTIONS": [
-    "Metal2 3.36 3.78 240.16 65.5",
-    "Metal3 3.36 3.78 240.16 65.5",
-    "Metal4 3.36 3.78 240.16 65.5"
-  ],
-
-  "FP_PDN_VSPACING": 3.52,
-  "FP_PDN_VOFFSET": 6.15,
-
-  "PDN_MACRO_CONNECTIONS": [
-    "i_sram VPWR VGND VDD! VSS!",
-    "i_sram VPWR VGND VDDARRAY! VSS!"
-  ],
-
-  "RUN_MAGIC_DRC": 0,
-  "ERROR_ON_ILLEGAL_OVERLAPS": 0,
-  "KLAYOUT_DRC_RUNSET": "pdk_dir::libs.tech/klayout/tech/drc/ihp-sg13cmos5l.drc"
+  "MAGIC_WRITE_LEF_PINONLY": 1
 }

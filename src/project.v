@@ -16,24 +16,123 @@ module tt_um_prithamkjena (
     input  wire       rst_n     // reset_n - low to reset
 );
 
-  // Reserved IHP 64x16 SRAM macro.
-  // Keep the macro instantiated but inactive for now.
-  (* keep *) wire [15:0] sram_dout_unused;
+    // =========================================================
+    // SRAM A
+    // Write data comes from ui_in.
+    // Read interface is available for future modules.
+    // =========================================================
 
-  (* keep *)
-  RM_IHPSG13_1P_64x16_c2 i_sram (
-      .A_CLK  (clk),
-      .A_MEN  (1'b0),
-      .A_WEN  (1'b0),
-      .A_REN  (1'b0),
-      .A_ADDR (6'b0),
-      .A_DIN  (16'b0),
-      .A_DLY  (1'b1),
-      .A_DOUT (sram_dout_unused)
-  );
+    reg [3:0] addr_a;
 
-  assign uo_out = ui_in + uio_in;
-  assign uio_out = 8'b0;
-  assign uio_oe  = 8'b0;
-  
+    wire       sram_a_read_en;
+    wire [3:0] sram_a_read_addr;
+    wire [7:0] sram_a_read_data;
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            addr_a <= 4'd0;
+        else if (ena)
+            addr_a <= addr_a + 1'b1;
+    end
+
+    // Temporary read-interface tie-offs.
+    // Replace these with connections to your consuming module later.
+    assign sram_a_read_en   = 1'b0;
+    assign sram_a_read_addr = 4'd0;
+
+    (* keep *) sram_16x8 SRAM_A (
+        .clk       (clk),
+        .rst_n     (rst_n),
+
+        .write_en  (ena),
+        .write_addr(addr_a),
+        .write_data(ui_in),
+
+        .read_en   (sram_a_read_en),
+        .read_addr (sram_a_read_addr),
+        .read_data (sram_a_read_data)
+    );
+
+
+    // =========================================================
+    // SRAM B
+    // Write data comes from uio_in.
+    // Read interface is available for future modules.
+    // =========================================================
+
+    reg [3:0] addr_b;
+
+    wire       sram_b_read_en;
+    wire [3:0] sram_b_read_addr;
+    wire [7:0] sram_b_read_data;
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            addr_b <= 4'd0;
+        else if (ena)
+            addr_b <= addr_b + 1'b1;
+    end
+
+    // Temporary read-interface tie-offs.
+    assign sram_b_read_en   = 1'b0;
+    assign sram_b_read_addr = 4'd0;
+
+    (* keep *) sram_16x8 SRAM_B (
+        .clk       (clk),
+        .rst_n     (rst_n),
+
+        .write_en  (ena),
+        .write_addr(addr_b),
+        .write_data(uio_in),
+
+        .read_en   (sram_b_read_en),
+        .read_addr (sram_b_read_addr),
+        .read_data (sram_b_read_data)
+    );
+
+
+    // =========================================================
+    // SRAM C
+    // Write interface reserved for future modules.
+    // Read data is exposed through uo_out.
+    // =========================================================
+
+    wire       c_write_en   = 1'b0;
+    wire [3:0] c_write_addr = 4'd0;
+    wire [7:0] c_write_data = 8'd0;
+
+    reg [3:0] addr_c;
+    wire [7:0] sram_c_read_data;
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            addr_c <= 4'd0;
+        else if (ena)
+            addr_c <= addr_c + 1'b1;
+    end
+
+    (* keep *) sram_16x8 SRAM_C (
+        .clk       (clk),
+        .rst_n     (rst_n),
+
+        .write_en  (c_write_en),
+        .write_addr(c_write_addr),
+        .write_data(c_write_data),
+
+        .read_en   (ena),
+        .read_addr (addr_c),
+        .read_data (sram_c_read_data)
+    );
+
+
+    // =========================================================
+    // TinyTapeout outputs
+    // =========================================================
+
+    assign uo_out  = sram_c_read_data;
+
+    // All bidirectional GPIOs remain inputs.
+    assign uio_out = 8'b0;
+    assign uio_oe  = 8'b0;
+
 endmodule
