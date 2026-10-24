@@ -105,7 +105,7 @@
       "instances": {
         "i_sram": {
           "location": [3.36, 3.78],
-          "orientation": "N"
+          "orientation": "FS"
         }
       }
     }
@@ -113,9 +113,9 @@
   "FP_MACRO_HORIZONTAL_HALO": 2,
 
   "ROUTING_OBSTRUCTIONS": [
-    "Metal2 3.36 3.78 240.16 68.14",
-    "Metal3 3.36 3.78 240.16 68.14",
-    "Metal4 3.36 3.78 240.16 68.14"
+    "Metal2 3.36 3.78 240.16 65.5",
+    "Metal3 3.36 3.78 240.16 65.5",
+    "Metal4 3.36 3.78 240.16 65.5"
   ],
 
   "FP_PDN_VSPACING": 3.52,
