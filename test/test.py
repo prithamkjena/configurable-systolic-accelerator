@@ -3,84 +3,127 @@
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import RisingEdge, Timer
+from cocotb.triggers import ClockCycles, RisingEdge, FallingEdge, Timer
 
 
 @cocotb.test()
-async def test_three_sram_banks(dut):
+async def test_three_sram_blocks(dut):
+    dut._log.info("Starting three-SRAM test")
 
-    cocotb.start_soon(
-        Clock(dut.clk, 10, unit="ns").start()
-    )
+    # Start the clock
+    clock = Clock(dut.clk, 10, unit="ns")
+    cocotb.start_soon(clock.start())
 
-    # Initialize inputs.
-    dut.rst_n.value = 0
+    # Drive initial inputs and reset the design
     dut.ena.value = 0
     dut.ui_in.value = 0
     dut.uio_in.value = 0
+    dut.rst_n.value = 0
 
-    await Timer(25, unit="ns")
+    await ClockCycles(dut.clk, 3)
+    await FallingEdge(dut.clk)
 
     dut.rst_n.value = 1
-    await Timer(1, unit="ns")
-
     dut.ena.value = 1
 
-    matrix_a = [
-        -128, -1, 0, 127,
-        1, -2, 42, -42,
-        13, -13, 64, -64,
-        100, -100, 85, -86,
-    ]
+    # Access the three SRAM instances through the testbench hierarchy
+    top = dut.user_project
+    sram_a = top.SRAM_A
+    sram_b = top.SRAM_B
+    sram_c = top.SRAM_C
 
-    matrix_b = [
-        5, 10, 15, 20,
-        -5, -10, -15, -20,
-        30, 40, 50, 60,
-        -30, -40, -50, -60,
-    ]
+    # ---------------------------------------------------------
+    # Test 1: Write distinct data into all three SRAMs
+    # ---------------------------------------------------------
 
-    # Write one byte to A and one byte to B per clock.
-    for address in range(16):
+    data_a = [(0x31 + 7 * i) & 0xFF for i in range(16)]
+    data_b = [(0xA6 - 3 * i) & 0xFF for i in range(16)]
+    data_c = [data_a[i] ^ data_b[i] for i in range(16)]
 
-        dut.ui_in.value = matrix_a[address] & 0xFF
-        dut.uio_in.value = matrix_b[address] & 0xFF
+    dut._log.info("Writing test patterns into SRAM A, B and C")
+
+    for addr in range(16):
+        dut.ui_in.value = data_a[addr]
+        dut.uio_in.value = data_b[addr]
+
+        # The RTL writes:
+        # SRAM A <- ui_in
+        # SRAM B <- uio_in
+        # SRAM C <- ui_in XOR uio_in
+        await RisingEdge(dut.clk)
+        await Timer(1, unit="ns")
+
+        assert int(sram_a.mem[addr].value) == data_a[addr], (
+            f"SRAM A address {addr}: expected {data_a[addr]}, "
+            f"got {int(sram_a.mem[addr].value)}"
+        )
+
+        assert int(sram_b.mem[addr].value) == data_b[addr], (
+            f"SRAM B address {addr}: expected {data_b[addr]}, "
+            f"got {int(sram_b.mem[addr].value)}"
+        )
+
+        assert int(sram_c.mem[addr].value) == data_c[addr], (
+            f"SRAM C address {addr}: expected {data_c[addr]}, "
+            f"got {int(sram_c.mem[addr].value)}"
+        )
+
+    dut._log.info("All SRAM write checks passed")
+
+    # ---------------------------------------------------------
+    # Test 2: Verify synchronous reads and overwrite behavior
+    # ---------------------------------------------------------
+    # The address counters have wrapped back to zero.
+    # On each clock edge, read_data receives the OLD memory
+    # value while the memory is overwritten with NEW data.
+
+    dut._log.info("Testing synchronous SRAM reads")
+
+    for addr in range(16):
+        old_a = data_a[addr]
+        old_b = data_b[addr]
+        old_c = data_c[addr]
+
+        new_a = (0xE1 - 5 * addr) & 0xFF
+        new_b = (0x42 + 9 * addr) & 0xFF
+        new_c = new_a ^ new_b
+
+        dut.ui_in.value = new_a
+        dut.uio_in.value = new_b
 
         await RisingEdge(dut.clk)
         await Timer(1, unit="ns")
 
-    # Check SRAM A's stored bytes.
-    for address in range(16):
+        # Confirm that the memories were overwritten
+        assert int(sram_a.mem[addr].value) == new_a
+        assert int(sram_b.mem[addr].value) == new_b
+        assert int(sram_c.mem[addr].value) == new_c
 
-        actual = int(dut.user_project.SRAM_A.mem[address].value)
-        expected = matrix_a[address] & 0xFF
-
-        assert actual == expected, (
-            f"SRAM A address {address}: "
-            f"expected 0x{expected:02X}, got 0x{actual:02X}"
+        # Synchronous reads return the old values from
+        # before the writes on this clock edge.
+        assert int(sram_a.read_data.value) == old_a, (
+            f"SRAM A read mismatch at address {addr}"
+        )
+        assert int(sram_b.read_data.value) == old_b, (
+            f"SRAM B read mismatch at address {addr}"
+        )
+        assert int(sram_c.read_data.value) == old_c, (
+            f"SRAM C read mismatch at address {addr}"
         )
 
-    # Check SRAM B's stored bytes.
-    for address in range(16):
-
-        actual = int(dut.user_project.SRAM_B.mem[address].value)
-        expected = matrix_b[address] & 0xFF
-
-        assert actual == expected, (
-            f"SRAM B address {address}: "
-            f"expected 0x{expected:02X}, got 0x{actual:02X}"
+        # SRAM C stores A XOR B, so A XOR B XOR C is zero.
+        expected_output = old_a ^ old_b ^ old_c
+        assert int(dut.uo_out.value) == expected_output, (
+            f"Output mismatch at address {addr}: "
+            f"expected {expected_output}, got {int(dut.uo_out.value)}"
         )
 
-    # C's memory was reset to zero and has not been written.
-    for address in range(16):
+        data_a[addr] = new_a
+        data_b[addr] = new_b
+        data_c[addr] = new_c
 
-        actual = int(dut.user_project.SRAM_C.mem[address].value)
+    # These outputs should remain tied low
+    assert int(dut.uio_out.value) == 0
+    assert int(dut.uio_oe.value) == 0
 
-        assert actual == 0, (
-            f"SRAM C address {address} should be zero, got {actual}"
-        )
-
-    dut._log.info("PASS: SRAM A stores all 16 bytes correctly")
-    dut._log.info("PASS: SRAM B stores all 16 bytes correctly")
-    dut._log.info("PASS: SRAM A and B store independent data")
-    dut._log.info("PASS: SRAM C remains zero without writes")
+    dut._log.info("PASS: All three SRAMs passed write and read tests")

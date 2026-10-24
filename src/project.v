@@ -37,8 +37,8 @@ module tt_um_prithamkjena (
 
     // Temporary read-interface tie-offs.
     // Replace these with connections to your consuming module later.
-    assign sram_a_read_en   = 1'b0;
-    assign sram_a_read_addr = 4'd0;
+    assign sram_a_read_en = ena;
+    assign sram_a_read_addr = addr_a;
 
     (* keep *) sram_16x8 SRAM_A (
         .clk       (clk),
@@ -74,8 +74,8 @@ module tt_um_prithamkjena (
     end
 
     // Temporary read-interface tie-offs.
-    assign sram_b_read_en   = 1'b0;
-    assign sram_b_read_addr = 4'd0;
+    assign sram_b_read_en = ena;
+    assign sram_b_read_addr = addr_b;
 
     (* keep *) sram_16x8 SRAM_B (
         .clk       (clk),
@@ -97,9 +97,9 @@ module tt_um_prithamkjena (
     // Read data is exposed through uo_out.
     // =========================================================
 
-    wire       c_write_en   = 1'b0;
-    wire [3:0] c_write_addr = 4'd0;
-    wire [7:0] c_write_data = 8'd0;
+    wire c_write_en = ena;
+    wire [3:0] c_write_addr = addr_c;
+    wire [7:0] c_write_data = ui_in ^ uio_in;
 
     reg [3:0] addr_c;
     wire [7:0] sram_c_read_data;
@@ -129,8 +129,9 @@ module tt_um_prithamkjena (
     // TinyTapeout outputs
     // =========================================================
 
-    assign uo_out  = sram_c_read_data;
-
+    assign uo_out = sram_a_read_data
+              ^ sram_b_read_data
+              ^ sram_c_read_data;
     // All bidirectional GPIOs remain inputs.
     assign uio_out = 8'b0;
     assign uio_oe  = 8'b0;
