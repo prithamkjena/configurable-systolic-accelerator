@@ -6,7 +6,10 @@ module systolic_acc_top(
 
     input [127:0] A,
     input [127:0] B,
-    output [287:0] C,
+    output wire signed [17:0] result_data,
+    output wire [3:0] result_idx,
+    output wire result_valid,
+    input  wire result_ready,
     output done
 );
     localparam OS = 2'b00;
@@ -103,16 +106,4 @@ module systolic_acc_top(
         .accum(accum)
     );
     
-    output_buffer OB(
-        .clk(clk),
-        .rst_n(rst_n),
-        .store_output(store_output),
-        .df_policy(df_policy),
-        .accum(accum),
-        .psum1_out(psum1_out),
-        .psum2_out(psum2_out),
-        .psum3_out(psum3_out),
-        .psum4_out(psum4_out),
-        .C(C)
-    );
 endmodule
