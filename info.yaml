@@ -1,9 +1,9 @@
 # Tiny Tapeout project information
 project:
-  title:        "Work in Progress"      # Project title
+  title:        "Configurable Systolic Accelerator (OS/WS/IS)"      # Project title
   author:       "Pritham Kumar Jena"      # Your name
   discord:      "prithamkjena"      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
-  description:  "Work in Progress"      # One line description of what your project does
+  description:  "4x4 Configurable Systolic Accelerator with Output/Weight/Input Stationary dataflows and SRAM storage"      # One line description of what your project does
   language:     "Verilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
   clock_hz:     50000000       # Clock frequency in Hz (or 0 if not applicable)
 
@@ -18,40 +18,48 @@ project:
   # Don't forget to also update `PROJECT_SOURCES` in test/Makefile.
   source_files:
     - "project.v"
-    - "sram_16x8.v"
+    - "sram_64x16_bb.v"
+    - "io_controller.v"
+    - "sram_acc_bridge.v"
+    - "systolic_acc_top.v"
+    - "systolic_acc_control.v"
+    - "pe_array.v"
+    - "PE.v"
+    - "stream_buffer.v"
+    - "output_buffer.v"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 # This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).
 pinout:
   # Inputs
-  ui[0]: "Test Input 0"
-  ui[1]: "Test Input 1"
-  ui[2]: "Test Input 2"
-  ui[3]: "Test Input 3"
-  ui[4]: "Test Input 4"
-  ui[5]: "Test Input 5"
-  ui[6]: "Test Input 6"
-  ui[7]: "Test Input 7"
+  ui[0]: "Data in bit 0 / Word addr bit 4"
+  ui[1]: "Data in bit 1 / Byte select"
+  ui[2]: "Data in bit 2"
+  ui[3]: "Data in bit 3"
+  ui[4]: "Data in bit 4"
+  ui[5]: "Data in bit 5"
+  ui[6]: "Data in bit 6"
+  ui[7]: "Data in bit 7"
 
   # Outputs
-  uo[0]: "Test Output 0"
-  uo[1]: "Test Output 1"
-  uo[2]: "Test Output 2"
-  uo[3]: "Test Output 3"
-  uo[4]: "Test Output 4"
-  uo[5]: "Test Output 5"
-  uo[6]: "Test Output 6"
-  uo[7]: "Test Output 7"
+  uo[0]: "Done flag / Data out bit 0"
+  uo[1]: "Busy flag / Data out bit 1"
+  uo[2]: "Dataflow bit 0 / Data out bit 2"
+  uo[3]: "Dataflow bit 1 / Data out bit 3"
+  uo[4]: "Data out bit 4"
+  uo[5]: "Data out bit 5"
+  uo[6]: "Data out bit 6"
+  uo[7]: "Data out bit 7"
 
-  # Bidirectional pins
-  uio[0]: "Test IO 0"
-  uio[1]: "Test IO 1"
-  uio[2]: "Test IO 2"
-  uio[3]: "Test IO 3"
-  uio[4]: "Test IO 4"
-  uio[5]: "Test IO 5"
-  uio[6]: "Test IO 6"
-  uio[7]: "Test IO 7"
+  # Bidirectional pins (used as inputs by host)
+  uio[0]: "Operand bit 0 / Word addr bit 0"
+  uio[1]: "Operand bit 1 / Word addr bit 1"
+  uio[2]: "Operand bit 2 / Word addr bit 2"
+  uio[3]: "Operand bit 3 / Word addr bit 3"
+  uio[4]: "Opcode bit 0"
+  uio[5]: "Opcode bit 1"
+  uio[6]: "Opcode bit 2"
+  uio[7]: "Opcode bit 3"
 
 # Do not change!
 yaml_version: 6

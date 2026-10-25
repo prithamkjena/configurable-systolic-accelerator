@@ -16,124 +16,190 @@ module tt_um_prithamkjena (
     input  wire       rst_n     // reset_n - low to reset
 );
 
-    // =========================================================
-    // SRAM A
-    // Write data comes from ui_in.
-    // Read interface is available for future modules.
-    // =========================================================
+    // Prevent unused input lint warning
+    wire _unused_ena = ena;
 
-    reg [3:0] addr_a;
+    // -------------------------------------------------------------
+    // SRAM Signals
+    // -------------------------------------------------------------
+    wire [5:0]  sram_a_addr;
+    wire [15:0] sram_a_din;
+    wire        sram_a_wen;
+    wire        sram_a_ren;
+    wire [15:0] sram_a_dout;
 
-    wire       sram_a_read_en;
-    wire [3:0] sram_a_read_addr;
-    wire [7:0] sram_a_read_data;
+    wire [5:0]  sram_b_addr;
+    wire [15:0] sram_b_din;
+    wire        sram_b_wen;
+    wire        sram_b_ren;
+    wire [15:0] sram_b_dout;
 
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n)
-            addr_a <= 4'd0;
-        else if (ena)
-            addr_a <= addr_a + 1'b1;
-    end
+    wire [5:0]  sram_c_addr;
+    wire [15:0] sram_c_din;
+    wire        sram_c_wen;
+    wire        sram_c_ren;
+    wire [15:0] sram_c_dout;
 
-    // Temporary read-interface tie-offs.
-    // Replace these with connections to your consuming module later.
-    assign sram_a_read_en = ena;
-    assign sram_a_read_addr = addr_a;
+    // -------------------------------------------------------------
+    // Controller <-> Bridge Signals
+    // -------------------------------------------------------------
+    wire        bridge_start;
+    wire [1:0]  df_policy;
+    wire        bridge_busy;
+    wire        bridge_done;
 
-    (* keep *) sram_16x8 SRAM_A (
-        .clk       (clk),
-        .rst_n     (rst_n),
+    // Controller SRAM interfaces
+    wire [5:0]  sram_a_addr_io;
+    wire [15:0] sram_a_din_io;
+    wire        sram_a_wen_io;
+    wire        sram_a_ren_io;
 
-        .write_en  (ena),
-        .write_addr(addr_a),
-        .write_data(ui_in),
+    wire [5:0]  sram_b_addr_io;
+    wire [15:0] sram_b_din_io;
+    wire        sram_b_wen_io;
+    wire        sram_b_ren_io;
 
-        .read_en   (sram_a_read_en),
-        .read_addr (sram_a_read_addr),
-        .read_data (sram_a_read_data)
+    wire [5:0]  sram_c_addr_io;
+    wire        sram_c_ren_io;
+
+    // Bridge SRAM interfaces
+    wire [5:0]  sram_a_addr_br;
+    wire        sram_a_ren_br;
+
+    wire [5:0]  sram_b_addr_br;
+    wire        sram_b_ren_br;
+
+    wire [5:0]  sram_c_addr_br;
+    wire [15:0] sram_c_din_br;
+    wire        sram_c_wen_br;
+
+    // Bridge <-> Systolic Core Signals
+    wire         acc_start;
+    wire [1:0]   acc_df_policy;
+    wire [127:0] acc_A;
+    wire [127:0] acc_B;
+    wire [287:0] acc_C;
+    wire         acc_done;
+
+    // -------------------------------------------------------------
+    // SRAM Arbitration MUX
+    // -------------------------------------------------------------
+    // When bridge_busy: bridge has full access to SRAMs
+    // When !bridge_busy: host io_controller has access to SRAMs
+    assign sram_a_addr = bridge_busy ? sram_a_addr_br : sram_a_addr_io;
+    assign sram_a_din  = bridge_busy ? 16'd0          : sram_a_din_io;
+    assign sram_a_wen  = bridge_busy ? 1'b0           : sram_a_wen_io;
+    assign sram_a_ren  = bridge_busy ? sram_a_ren_br  : sram_a_ren_io;
+
+    assign sram_b_addr = bridge_busy ? sram_b_addr_br : sram_b_addr_io;
+    assign sram_b_din  = bridge_busy ? 16'd0          : sram_b_din_io;
+    assign sram_b_wen  = bridge_busy ? 1'b0           : sram_b_wen_io;
+    assign sram_b_ren  = bridge_busy ? sram_b_ren_br  : sram_b_ren_io;
+
+    assign sram_c_addr = bridge_busy ? sram_c_addr_br : sram_c_addr_io;
+    assign sram_c_din  = bridge_busy ? sram_c_din_br  : 16'd0;
+    assign sram_c_wen  = bridge_busy ? sram_c_wen_br  : 1'b0;
+    assign sram_c_ren  = bridge_busy ? 1'b0           : sram_c_ren_io;
+
+    // -------------------------------------------------------------
+    // Submodule Instantiations
+    // -------------------------------------------------------------
+    io_controller ctrl (
+        .clk            (clk),
+        .rst_n          (rst_n),
+        .ui_in          (ui_in),
+        .uo_out         (uo_out),
+        .uio_in         (uio_in),
+        .uio_out        (uio_out),
+        .uio_oe         (uio_oe),
+        .sram_a_addr_io (sram_a_addr_io),
+        .sram_a_din_io  (sram_a_din_io),
+        .sram_a_wen_io  (sram_a_wen_io),
+        .sram_a_ren_io  (sram_a_ren_io),
+        .sram_a_dout    (sram_a_dout),
+        .sram_b_addr_io (sram_b_addr_io),
+        .sram_b_din_io  (sram_b_din_io),
+        .sram_b_wen_io  (sram_b_wen_io),
+        .sram_b_ren_io  (sram_b_ren_io),
+        .sram_b_dout    (sram_b_dout),
+        .sram_c_addr_io (sram_c_addr_io),
+        .sram_c_ren_io  (sram_c_ren_io),
+        .sram_c_dout    (sram_c_dout),
+        .bridge_start   (bridge_start),
+        .df_policy      (df_policy),
+        .bridge_busy    (bridge_busy),
+        .bridge_done    (bridge_done)
     );
 
-
-    // =========================================================
-    // SRAM B
-    // Write data comes from uio_in.
-    // Read interface is available for future modules.
-    // =========================================================
-
-    reg [3:0] addr_b;
-
-    wire       sram_b_read_en;
-    wire [3:0] sram_b_read_addr;
-    wire [7:0] sram_b_read_data;
-
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n)
-            addr_b <= 4'd0;
-        else if (ena)
-            addr_b <= addr_b + 1'b1;
-    end
-
-    // Temporary read-interface tie-offs.
-    assign sram_b_read_en = ena;
-    assign sram_b_read_addr = addr_b;
-
-    (* keep *) sram_16x8 SRAM_B (
-        .clk       (clk),
-        .rst_n     (rst_n),
-
-        .write_en  (ena),
-        .write_addr(addr_b),
-        .write_data(uio_in),
-
-        .read_en   (sram_b_read_en),
-        .read_addr (sram_b_read_addr),
-        .read_data (sram_b_read_data)
+    sram_acc_bridge bridge (
+        .clk           (clk),
+        .rst_n         (rst_n),
+        .start         (bridge_start),
+        .df_policy     (df_policy),
+        .busy          (bridge_busy),
+        .done          (bridge_done),
+        .sram_a_addr   (sram_a_addr_br),
+        .sram_a_ren    (sram_a_ren_br),
+        .sram_a_dout   (sram_a_dout),
+        .sram_b_addr   (sram_b_addr_br),
+        .sram_b_ren    (sram_b_ren_br),
+        .sram_b_dout   (sram_b_dout),
+        .sram_c_addr   (sram_c_addr_br),
+        .sram_c_din    (sram_c_din_br),
+        .sram_c_wen    (sram_c_wen_br),
+        .acc_start     (acc_start),
+        .acc_df_policy (acc_df_policy),
+        .acc_A         (acc_A),
+        .acc_B         (acc_B),
+        .acc_C         (acc_C),
+        .acc_done      (acc_done)
     );
 
-
-    // =========================================================
-    // SRAM C
-    // Write interface reserved for future modules.
-    // Read data is exposed through uo_out.
-    // =========================================================
-
-    wire c_write_en = ena;
-    wire [3:0] c_write_addr = addr_c;
-    wire [7:0] c_write_data = ui_in ^ uio_in;
-
-    reg [3:0] addr_c;
-    wire [7:0] sram_c_read_data;
-
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n)
-            addr_c <= 4'd0;
-        else if (ena)
-            addr_c <= addr_c + 1'b1;
-    end
-
-    (* keep *) sram_16x8 SRAM_C (
+    systolic_acc_top systolic_core (
         .clk       (clk),
         .rst_n     (rst_n),
-
-        .write_en  (c_write_en),
-        .write_addr(c_write_addr),
-        .write_data(c_write_data),
-
-        .read_en   (ena),
-        .read_addr (addr_c),
-        .read_data (sram_c_read_data)
+        .start     (acc_start),
+        .df_policy (acc_df_policy),
+        .A         (acc_A),
+        .B         (acc_B),
+        .C         (acc_C),
+        .done      (acc_done)
     );
 
+    // -------------------------------------------------------------
+    // SRAM Macro Instantiations
+    // -------------------------------------------------------------
+    RM_IHPSG13_1P_64x16_c2 SRAM_A (
+        .A_ADDR (sram_a_addr),
+        .A_DIN  (sram_a_din),
+        .A_WEN  (sram_a_wen),
+        .A_MEN  (1'b1),
+        .A_REN  (sram_a_ren),
+        .A_CLK  (clk),
+        .A_DOUT (sram_a_dout),
+        .A_DLY  (1'b1)
+    );
 
-    // =========================================================
-    // TinyTapeout outputs
-    // =========================================================
+    RM_IHPSG13_1P_64x16_c2 SRAM_B (
+        .A_ADDR (sram_b_addr),
+        .A_DIN  (sram_b_din),
+        .A_WEN  (sram_b_wen),
+        .A_MEN  (1'b1),
+        .A_REN  (sram_b_ren),
+        .A_CLK  (clk),
+        .A_DOUT (sram_b_dout),
+        .A_DLY  (1'b1)
+    );
 
-    assign uo_out = sram_a_read_data
-              ^ sram_b_read_data
-              ^ sram_c_read_data;
-    // All bidirectional GPIOs remain inputs.
-    assign uio_out = 8'b0;
-    assign uio_oe  = 8'b0;
+    RM_IHPSG13_1P_64x16_c2 SRAM_C (
+        .A_ADDR (sram_c_addr),
+        .A_DIN  (sram_c_din),
+        .A_WEN  (sram_c_wen),
+        .A_MEN  (1'b1),
+        .A_REN  (sram_c_ren),
+        .A_CLK  (clk),
+        .A_DOUT (sram_c_dout),
+        .A_DLY  (1'b1)
+    );
 
 endmodule
