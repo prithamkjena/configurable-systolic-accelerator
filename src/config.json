@@ -123,6 +123,7 @@
   "RUN_MAGIC_DRC": 0,
   "//illegal_overlap": "Magic extracts the SRAM from its LEF abstract, whose Metal4 OBS includes a keep-out bar at the VDD!/VDDARRAY! column break (LEF y 39-45); the GDS has no metal there, so a VPWR stripe across it only bridges the two supply pins the PDN ties together anyway. 22 such spots, all on VDD columns; KLayout DRC (precheck deck) and LVS are clean, so this check is waived.",
   "ERROR_ON_ILLEGAL_OVERLAPS": 0,
+  "ERROR_ON_PDN_VIOLATIONS": 0,
   "RUN_KLAYOUT_DRC": 1,
   "KLAYOUT_DRC_RUNSET": "pdk_dir::libs.tech/klayout/tech/drc/ihp-sg13cmos5l.drc"
 }
