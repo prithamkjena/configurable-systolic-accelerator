@@ -94,19 +94,19 @@
       },
       "instances": {
         "SRAM_A": { "location": [3.36, 3.78],  "orientation": "FS" },
-        "SRAM_B": { "location": [3.36, 340.2], "orientation": "N" }
+        "SRAM_B": { "location": [3.36, 515.52], "orientation": "N" }
       }
     }
   },
 
-  "//srams": "Two 512x32 SRAM FIFOs (one per shard, 2 KB each: Ethernet RX and TX) stacked flush left with their pin faces toward each other: SRAM[0] FS at y 3.78 (pins on top at 195.12), SRAM[1] N at y 294.84 (pins at its bottom); the 99.7 um gap holds both wrappers. All 1P x32 macros share the 416.64 um width and the same power-column x positions, so the stripes on the columns serve both.",
+  "//srams": "Two 512x32 SRAM FIFOs (one per shard, 2 KB each: Ethernet RX and TX) stacked flush left with their pin faces toward each other: SRAM[0] FS at y 3.78 (pins on top at 195.12), SRAM[1] N at y 294.84 (pins at its bottom). All 1P x32 macros share the 416.64 um width and the same power-column x positions, so the stripes on the columns serve both.",
   "ROUTING_OBSTRUCTIONS": [
     "Metal2 3.36 3.78 420.0 192.5",
-    "Metal2 3.36 342.8 420.0 531.54",
+    "Metal2 3.36 518.12 420.0 706.86",
     "Metal3 3.36 3.78 420.0 192.5",
-    "Metal3 3.36 342.8 420.0 531.54",
+    "Metal3 3.36 518.12 420.0 706.86",
     "Metal4 3.36 3.78 420.0 192.5",
-    "Metal4 3.36 342.8 420.0 531.54"
+    "Metal4 3.36 518.12 420.0 706.86"
   ],
 
   "FP_PDN_VSPACING": 3.52,  
