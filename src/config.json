@@ -82,34 +82,31 @@
   "MAGIC_WRITE_LEF_PINONLY": 1,
 
   "MACROS": {
-    "RM_IHPSG13_1P_64x16_c2": {
-      "gds":   ["pdk_dir::libs.ref/sg13cmos5l_sram/gds/RM_IHPSG13_1P_64x16_c2.gds"],
-      "lef":   ["pdk_dir::libs.ref/sg13cmos5l_sram/lef/RM_IHPSG13_1P_64x16_c2.lef"],
-      "spice": ["pdk_dir::libs.ref/sg13cmos5l_sram/cdl/RM_IHPSG13_1P_64x16_c2.cdl"],
+    "RM_IHPSG13_1P_512x32_c2_bm_bist": {
+      "gds":   ["pdk_dir::libs.ref/sg13cmos5l_sram/gds/RM_IHPSG13_1P_512x32_c2_bm_bist.gds"],
+      "lef":   ["pdk_dir::libs.ref/sg13cmos5l_sram/lef/RM_IHPSG13_1P_512x32_c2_bm_bist.lef"],
+      "spice": ["pdk_dir::libs.ref/sg13cmos5l_sram/cdl/RM_IHPSG13_1P_512x32_c2_bm_bist.cdl"],
       "nl": [],  "spef": {},
       "lib": {
-        "nom_typ_1p20V_25C":   ["pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_64x16_c2_typ_1p20V_25C.lib"],
-        "nom_fast_1p32V_m40C": ["pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_64x16_c2_fast_1p32V_m55C.lib"],
-        "nom_slow_1p08V_125C": ["pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_64x16_c2_slow_1p08V_125C.lib"]
+        "nom_typ_1p20V_25C":   ["pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_512x32_c2_bm_bist_typ_1p20V_25C.lib"],
+        "nom_fast_1p32V_m40C": ["pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_512x32_c2_bm_bist_fast_1p32V_m55C.lib"],
+        "nom_slow_1p08V_125C": ["pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_512x32_c2_bm_bist_slow_1p08V_125C.lib"]
       },
       "instances": {
-        "SRAM_A": { "location": [3.36, 3.78],  "orientation": "N" },
-        "SRAM_C": { "location": [3.36, 261.22], "orientation": "N" },
-        "SRAM_B": { "location": [3.36, 518.66], "orientation": "FS" }
+        "SRAM_A": { "location": [3.36, 3.78],  "orientation": "FS" },
+        "SRAM_B": { "location": [3.36, 340.2], "orientation": "N" }
       }
     }
   },
 
+  "//srams": "Two 512x32 SRAM FIFOs (one per shard, 2 KB each: Ethernet RX and TX) stacked flush left with their pin faces toward each other: SRAM[0] FS at y 3.78 (pins on top at 195.12), SRAM[1] N at y 294.84 (pins at its bottom); the 99.7 um gap holds both wrappers. All 1P x32 macros share the 416.64 um width and the same power-column x positions, so the stripes on the columns serve both.",
   "ROUTING_OBSTRUCTIONS": [
-    "Metal2 3.36 3.78 240.16 68.14",   
-    "Metal3 3.36 3.78 240.16 68.14",
-    "Metal4 3.36 3.78 240.16 68.14",
-    "Metal2 3.36 261.22 240.16 325.58",   
-    "Metal3 3.36 261.22 240.16 325.58",
-    "Metal4 3.36 261.22 240.16 325.58",
-    "Metal2 3.36 518.66 240.16 583.02",   
-    "Metal3 3.36 518.66 240.16 583.02",
-    "Metal4 3.36 518.66 240.16 583.02"   
+    "Metal2 3.36 3.78 420.0 192.5",
+    "Metal2 3.36 342.8 420.0 531.54",
+    "Metal3 3.36 3.78 420.0 192.5",
+    "Metal3 3.36 342.8 420.0 531.54",
+    "Metal4 3.36 3.78 420.0 192.5",
+    "Metal4 3.36 342.8 420.0 531.54"
   ],
 
   "FP_PDN_VSPACING": 3.52,  
@@ -120,12 +117,11 @@
     "SRAM_A VPWR VGND VDD! VSS!",
     "SRAM_A VPWR VGND VDDARRAY! VSS!",
     "SRAM_B VPWR VGND VDD! VSS!",
-    "SRAM_B VPWR VGND VDDARRAY! VSS!",
-    "SRAM_C VPWR VGND VDD! VSS!",
-    "SRAM_C VPWR VGND VDDARRAY! VSS!"
+    "SRAM_B VPWR VGND VDDARRAY! VSS!"
   ],
 
   "RUN_MAGIC_DRC": 0,
+  "//illegal_overlap": "Magic extracts the SRAM from its LEF abstract, whose Metal4 OBS includes a keep-out bar at the VDD!/VDDARRAY! column break (LEF y 39-45); the GDS has no metal there, so a VPWR stripe across it only bridges the two supply pins the PDN ties together anyway. 22 such spots, all on VDD columns; KLayout DRC (precheck deck) and LVS are clean, so this check is waived.",
   "ERROR_ON_ILLEGAL_OVERLAPS": 0,
   "RUN_KLAYOUT_DRC": 1,
   "KLAYOUT_DRC_RUNSET": "pdk_dir::libs.tech/klayout/tech/drc/ihp-sg13cmos5l.drc"

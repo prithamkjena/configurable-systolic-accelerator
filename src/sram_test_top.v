@@ -1,7 +1,6 @@
 /*
- * Standalone self-test for the three IHP SG13G2 64x16 SRAM macros.
- * The macro instance names SRAM_A, SRAM_B and SRAM_C intentionally match
- * the fixed locations in the project's LibreLane configuration.
+ * Standalone self-test for two IHP SG13G2 512x32 SRAM macros.
+ * SRAM_A and SRAM_B intentionally retain their physical instance names.
  */
 `default_nettype none
 
@@ -16,181 +15,173 @@ module tt_um_prithamkjena (
     input  wire       rst_n
 );
 
-    // The host data pins are unused: the BIST runs automatically after reset.
-    wire _unused_inputs = ena ^ (^ui_in) ^ (^uio_in);
+    // ------------------------------------------------------------
+    // SRAM interface
+    // ------------------------------------------------------------
 
-    localparam [2:0] ST_IDLE      = 3'd0;
-    localparam [2:0] ST_WRITE     = 3'd1;
-    localparam [2:0] ST_READ      = 3'd2;
-    localparam [2:0] ST_READ_LAST = 3'd3;
-    localparam [2:0] ST_DONE      = 3'd4;
+    reg         sram_wen;
+    reg         sram_ren;
+    reg  [8:0]  sram_addr;
+    reg  [31:0] sram_din;
+    wire [31:0] sram_a_dout;
+    wire [31:0] sram_b_dout;
+
+    wire [31:0] sram_bm = 32'hFFFFFFFF;
+
+    // ------------------------------------------------------------
+    // SRAM A: 512 words x 32 bits
+    // ------------------------------------------------------------
+
+    RM_IHPSG13_1P_512x32_c2_bm_bist SRAM_A (
+        .A_CLK       (clk),
+        .A_MEN       (sram_ren | sram_wen),
+        .A_WEN       (sram_wen),
+        .A_REN       (sram_ren),
+        .A_ADDR      (sram_addr),
+        .A_DIN       (sram_din),
+        .A_DLY       (1'b1),
+        .A_DOUT      (sram_a_dout),
+        .A_BM        (sram_bm),
+        .A_BIST_CLK  (1'b0),
+        .A_BIST_EN   (1'b0),
+        .A_BIST_MEN  (1'b0),
+        .A_BIST_WEN  (1'b0),
+        .A_BIST_REN  (1'b0),
+        .A_BIST_ADDR (9'b0),
+        .A_BIST_DIN  (32'b0),
+        .A_BIST_BM   (32'b0)
+    );
+
+    // ------------------------------------------------------------
+    // SRAM B: 512 words x 32 bits
+    // ------------------------------------------------------------
+
+    RM_IHPSG13_1P_512x32_c2_bm_bist SRAM_B (
+        .A_CLK       (clk),
+        .A_MEN       (sram_ren | sram_wen),
+        .A_WEN       (sram_wen),
+        .A_REN       (sram_ren),
+        .A_ADDR      (sram_addr),
+        .A_DIN       (sram_din),
+        .A_DLY       (1'b1),
+        .A_DOUT      (sram_b_dout),
+        .A_BM        (sram_bm),
+        .A_BIST_CLK  (1'b0),
+        .A_BIST_EN   (1'b0),
+        .A_BIST_MEN  (1'b0),
+        .A_BIST_WEN  (1'b0),
+        .A_BIST_REN  (1'b0),
+        .A_BIST_ADDR (9'b0),
+        .A_BIST_DIN  (32'b0),
+        .A_BIST_BM   (32'b0)
+    );
+
+    // ------------------------------------------------------------
+    // Test controller
+    // ------------------------------------------------------------
+
+    localparam [2:0]
+        ST_WRITE = 3'd0,
+        ST_READ  = 3'd1,
+        ST_CHECK = 3'd2,
+        ST_DONE  = 3'd3;
 
     reg [2:0] state;
-    reg [5:0] addr;
-    reg [5:0] pending_addr;
-    reg [1:0] pattern_id;
-    reg       read_valid;
-    reg       fail_a;
-    reg       fail_b;
-    reg       fail_c;
+    reg [8:0] test_addr;
+    reg [1:0] pattern;
 
-    // Patterns cover all-zero, all-one, checkerboard and address-dependent data.
-    // The address-dependent pattern makes every address distinguishable, while
-    // different bank constants ensure the three macros do not share test data.
-    function [15:0] make_pattern;
-        input [5:0] address;
-        input [1:0] pattern_sel;
-        input [1:0] bank_sel;
-        reg [15:0] address_pattern;
+    reg fail_a;
+    reg fail_b;
+
+    // Expected data for each test pattern.
+    function [31:0] expected_data;
+        input [8:0]  addr;
+        input [1:0]  pat;
         begin
-            address_pattern = {address, address, address[3:0]};
-            case (pattern_sel)
-                2'd0: make_pattern = 16'h0000;
-                2'd1: make_pattern = 16'hFFFF;
-                2'd2: begin
-                    case (bank_sel)
-                        2'd0: make_pattern = 16'hAAAA;
-                        2'd1: make_pattern = 16'h5555;
-                        default: make_pattern = 16'h9696;
-                    endcase
-                end
-                default: begin
-                    case (bank_sel)
-                        2'd0: make_pattern = address_pattern ^ 16'hA5C3;
-                        2'd1: make_pattern = address_pattern ^ 16'h3C5A;
-                        default: make_pattern = address_pattern ^ 16'h5AA5;
-                    endcase
-                end
+            case (pat)
+                2'd0: expected_data = 32'h00000000;
+                2'd1: expected_data = 32'hFFFFFFFF;
+                2'd2: expected_data = 32'hAAAAAAAA;
+                2'd3: expected_data = {
+                    7'b0, addr, 7'b0, ~addr
+                };
+                default: expected_data = 32'h00000000;
             endcase
         end
     endfunction
 
+    // Drive the SRAM interface from the current controller state.
+    always @(*) begin
+        sram_wen  = 1'b0;
+        sram_ren  = 1'b0;
+        sram_addr = test_addr;
+        sram_din  = expected_data(test_addr, pattern);
 
-    wire [15:0] sram_a_dout;
-    wire [15:0] sram_b_dout;
-    wire [15:0] sram_c_dout;
+        case (state)
+            ST_WRITE: sram_wen = 1'b1;
+            ST_READ:  sram_ren = 1'b1;
+            default: begin
+                sram_wen = 1'b0;
+                sram_ren = 1'b0;
+            end
+        endcase
+    end
 
-    wire        sram_wen = (state == ST_WRITE);
-    wire        sram_ren = (state == ST_READ) || (state == ST_READ_LAST);
+    // ------------------------------------------------------------
+    // BIST sequence
+    //
+    // For each pattern:
+    //   1. Write all 512 addresses.
+    //   2. Read all 512 addresses.
+    //   3. Check each synchronous read result.
+    //
+    // SRAM_A and SRAM_B are checked independently.
+    // ------------------------------------------------------------
 
-    wire [15:0] sram_a_din = make_pattern(addr, pattern_id, 2'd0);
-    wire [15:0] sram_b_din = make_pattern(addr, pattern_id, 2'd1);
-    wire [15:0] sram_c_din = make_pattern(addr, pattern_id, 2'd2);
-
-    // Keep these instance names identical to config.json's MACROS.instances.
-    RM_IHPSG13_1P_64x16_c2 SRAM_A (
-        .A_CLK  (clk),
-        .A_MEN  (1'b1),
-        .A_WEN  (sram_wen),
-        .A_REN  (sram_ren),
-        .A_ADDR (addr),
-        .A_DIN  (sram_a_din),
-        .A_DLY  (1'b1),
-        .A_DOUT (sram_a_dout)
-    );
-
-    RM_IHPSG13_1P_64x16_c2 SRAM_B (
-        .A_CLK  (clk),
-        .A_MEN  (1'b1),
-        .A_WEN  (sram_wen),
-        .A_REN  (sram_ren),
-        .A_ADDR (addr),
-        .A_DIN  (sram_b_din),
-        .A_DLY  (1'b1),
-        .A_DOUT (sram_b_dout)
-    );
-
-    RM_IHPSG13_1P_64x16_c2 SRAM_C (
-        .A_CLK  (clk),
-        .A_MEN  (1'b1),
-        .A_WEN  (sram_wen),
-        .A_REN  (sram_ren),
-        .A_ADDR (addr),
-        .A_DIN  (sram_c_din),
-        .A_DLY  (1'b1),
-        .A_DOUT (sram_c_dout)
-    );
-
-    // Status pins:
-    // uo_out[0] = BIST complete
-    // uo_out[1] = SRAM_A readback failure
-    // uo_out[2] = SRAM_B readback failure
-    // uo_out[3] = SRAM_C readback failure
-    // uo_out[5:4] = current pattern pass (0 through 3)
-    assign uo_out  = {2'b00, pattern_id, fail_c, fail_b, fail_a,
-                      (state == ST_DONE)};
-    assign uio_out = 8'h00;
-    assign uio_oe  = 8'h00;
-
-    always @(posedge clk) begin
+    always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            state        <= ST_IDLE;
-            addr         <= 6'd0;
-            pending_addr <= 6'd0;
-            pattern_id   <= 2'd0;
-            read_valid   <= 1'b0;
-            fail_a       <= 1'b0;
-            fail_b       <= 1'b0;
-            fail_c       <= 1'b0;
+            state     <= ST_WRITE;
+            test_addr <= 9'd0;
+            pattern   <= 2'd0;
+            fail_a    <= 1'b0;
+            fail_b    <= 1'b0;
         end else begin
             case (state)
-                ST_IDLE: begin
-                    addr         <= 6'd0;
-                    pending_addr <= 6'd0;
-                    pattern_id   <= 2'd0;
-                    read_valid   <= 1'b0;
-                    state        <= ST_WRITE;
-                end
 
-                // Write all 64 addresses in all three macros for this pattern.
                 ST_WRITE: begin
-                    if (addr == 6'd63) begin
-                        addr         <= 6'd0;
-                        pending_addr <= 6'd0;
-                        read_valid   <= 1'b0;
-                        state        <= ST_READ;
+                    if (test_addr == 9'd511) begin
+                        test_addr <= 9'd0;
+                        state     <= ST_READ;
                     end else begin
-                        addr <= addr + 1'b1;
+                        test_addr <= test_addr + 1'b1;
                     end
                 end
 
-                // Synchronous-read pipeline: compare the previous address while
-                // the SRAMs return the data for the currently presented address.
                 ST_READ: begin
-                    if (read_valid) begin
-                        if (sram_a_dout !== make_pattern(pending_addr, pattern_id, 2'd0))
-                            fail_a <= 1'b1;
-                        if (sram_b_dout !== make_pattern(pending_addr, pattern_id, 2'd1))
-                            fail_b <= 1'b1;
-                        if (sram_c_dout !== make_pattern(pending_addr, pattern_id, 2'd2))
-                            fail_c <= 1'b1;
-                    end
-
-                    read_valid   <= 1'b1;
-                    pending_addr <= addr;
-                    if (addr == 6'd63) begin
-                        state <= ST_READ_LAST;
-                    end else begin
-                        addr <= addr + 1'b1;
-                    end
+                    // The SRAM captures this address on this clock.
+                    // Check its registered output in the next state.
+                    state <= ST_CHECK;
                 end
 
-                // Check address 63 after its synchronous SRAM read completes.
-                ST_READ_LAST: begin
-                    if (sram_a_dout !== make_pattern(pending_addr, pattern_id, 2'd0))
+                ST_CHECK: begin
+                    if (sram_a_dout !== expected_data(test_addr, pattern))
                         fail_a <= 1'b1;
-                    if (sram_b_dout !== make_pattern(pending_addr, pattern_id, 2'd1))
-                        fail_b <= 1'b1;
-                    if (sram_c_dout !== make_pattern(pending_addr, pattern_id, 2'd2))
-                        fail_c <= 1'b1;
 
-                    if (pattern_id == 2'd3) begin
-                        state <= ST_DONE;
+                    if (sram_b_dout !== expected_data(test_addr, pattern))
+                        fail_b <= 1'b1;
+
+                    if (test_addr == 9'd511) begin
+                        test_addr <= 9'd0;
+
+                        if (pattern == 2'd3) begin
+                            state <= ST_DONE;
+                        end else begin
+                            pattern <= pattern + 1'b1;
+                            state   <= ST_WRITE;
+                        end
                     end else begin
-                        pattern_id <= pattern_id + 1'b1;
-                        addr       <= 6'd0;
-                        read_valid <= 1'b0;
-                        state      <= ST_WRITE;
+                        test_addr <= test_addr + 1'b1;
+                        state     <= ST_READ;
                     end
                 end
 
@@ -199,11 +190,31 @@ module tt_um_prithamkjena (
                 end
 
                 default: begin
-                    state <= ST_IDLE;
+                    state <= ST_WRITE;
+                    test_addr <= 9'd0;
                 end
+
             endcase
         end
     end
+
+    // ------------------------------------------------------------
+    // Tiny Tapeout output mapping
+    //
+    // uo_out[0]   = BIST done
+    // uo_out[1]   = SRAM_A failure
+    // uo_out[2]   = SRAM_B failure
+    // uo_out[4:3] = Current pattern
+    // ------------------------------------------------------------
+
+    assign uo_out[0]   = (state == ST_DONE);
+    assign uo_out[1]   = fail_a;
+    assign uo_out[2]   = fail_b;
+    assign uo_out[4:3] = pattern;
+    assign uo_out[7:5] = 3'b000;
+
+    assign uio_out = 8'b0;
+    assign uio_oe  = 8'b0;
 
 endmodule
 
