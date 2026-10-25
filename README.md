@@ -1,8 +1,64 @@
 ![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/fpga/badge.svg)
 
-# Tiny Tapeout Verilog Project Template
+# Configurable 4×4 Systolic Accelerator (OS / WS / IS)
 
-- [Read the documentation for project](docs/info.md)
+A hardware-accelerated 4×4 2D systolic array supporting **Output Stationary (OS)**, **Weight Stationary (WS)**, and **Input Stationary (IS)** dataflows, coupled with 3 on-chip IHP SG13CMOS5L SRAM macros (`RM_IHPSG13_1P_64x16_c2`) on an 8×4 Tiny Tapeout tile.
+
+- [Read the full datasheet and technical documentation](docs/info.md)
+
+---
+
+## Project Overview
+
+This project implements a matrix multiplication engine ($C = A \times B$) for 4×4 matrices with 8-bit signed integer elements, producing exact 18-bit signed results without overflow.
+
+### Key Highlights
+- **Reconfigurable Systolic Architecture**: Dynamically switchable at runtime between:
+  - **Output Stationary (OS)**: Accumulators stay stationary inside PEs; activations and weights stream continuously.
+  - **Weight Stationary (WS)**: Stationary weights pre-loaded into PE registers; activations stream horizontally while partial sums accumulate down columns.
+  - **Input Stationary (IS)**: Stationary activations pre-loaded; weights and partial sums stream through the grid.
+- **Embedded SRAM Macro Storage**:
+  - Three on-chip compiled IHP SRAM macros (`RM_IHPSG13_1P_64x16_c2`, 64×16 bits).
+  - SRAM A: 4×4 Matrix A (16 bytes = 8 words).
+  - SRAM B: 4×4 Matrix B (16 bytes = 8 words).
+  - SRAM C: 4×4 Matrix C (16 elements × 18 bits = 32 words).
+- **Physical Design & PDN Optimization**:
+  - Designed for IHP 130 nm SG13CMOS5L PDK within an 8×4 Tiny Tapeout tile.
+  - Custom LibreLane PDN plugin (`Project.ExtendPowerStripes`) ensuring continuous Metal4 power delivery across embedded SRAM macros.
+- **Optimized Datapath**: Sized with exact mathematical bitwidths (18-bit partial sums and 288-bit output bus), saving 672 unnecessary flip-flops over a naive 32-bit datapath.
+
+---
+
+## Quick Start & Verification
+
+Run the full Cocotb regression suite (18 automated tests covering all dataflows, boundary conditions, and SRAM operations):
+
+```bash
+cd test
+make -B
+```
+
+---
+
+## Architecture & I/O Protocol
+
+Communication with the accelerator is handled over the standard Tiny Tapeout 8-bit interfaces (`ui_in`, `uio_in`, `uo_out`):
+
+### Command Interface (`uio_in[7:4] = Opcode`, `uio_in[3:0] = Operand`)
+
+| Opcode | Name | Operand (`uio_in[3:0]`) | Data In (`ui_in`) | Output (`uo_out`) | Description |
+|:---:|:---|:---|:---|:---|:---|
+| `0x0` | `NOP` | Don't care | Don't care | Status flags | Poll status flags |
+| `0x1` | `WRITE_A` | Byte index (0–15) | 8-bit signed data | Status flags | Write byte to staging buffer & commit word to SRAM A |
+| `0x2` | `WRITE_B` | Byte index (0–15) | 8-bit signed data | Status flags | Write byte to staging buffer & commit word to SRAM B |
+| `0x3` | `SET_DF` | Don't care | `[1:0]` policy | Status flags | Set dataflow: `00`=OS, `01`=WS, `10`=IS |
+| `0x4` | `READ_C` | Word addr `[3:0]` | `ui[0]`=addr[4], `ui[1]`=byte_sel | Selected byte | Read 16-bit word from SRAM C (`uio_out` has high byte) |
+| `0x5` | `READ_A` | Word addr `[2:0]` | `ui[1]`=byte_sel | Selected byte | Read 16-bit word from SRAM A |
+| `0x6` | `READ_B` | Word addr `[2:0]` | `ui[1]`=byte_sel | Selected byte | Read 16-bit word from SRAM B |
+| `0x7` | `START` | Don't care | Don't care | Status flags | Trigger accelerator execution bridge |
+| `0x8` | `STATUS` | Don't care | Don't care | Status flags | Explicit poll status: `{4'b0, df_policy[1:0], busy, done}` |
+
+---
 
 ## What is Tiny Tapeout?
 
