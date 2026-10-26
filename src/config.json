@@ -82,31 +82,35 @@
   "MAGIC_WRITE_LEF_PINONLY": 1,
 
   "MACROS": {
-    "RM_IHPSG13_1P_512x32_c2_bm_bist": {
-      "gds":   ["pdk_dir::libs.ref/sg13cmos5l_sram/gds/RM_IHPSG13_1P_512x32_c2_bm_bist.gds"],
-      "lef":   ["pdk_dir::libs.ref/sg13cmos5l_sram/lef/RM_IHPSG13_1P_512x32_c2_bm_bist.lef"],
-      "spice": ["pdk_dir::libs.ref/sg13cmos5l_sram/cdl/RM_IHPSG13_1P_512x32_c2_bm_bist.cdl"],
+    "RM_IHPSG13_1P_64x16_c2": {
+      "gds":   ["pdk_dir::libs.ref/sg13cmos5l_sram/gds/RM_IHPSG13_1P_64x16_c2.gds"],
+      "lef":   ["pdk_dir::libs.ref/sg13cmos5l_sram/lef/RM_IHPSG13_1P_64x16_c2.lef"],
+      "spice": ["pdk_dir::libs.ref/sg13cmos5l_sram/cdl/RM_IHPSG13_1P_64x16_c2.cdl"],
       "nl": [],  "spef": {},
       "lib": {
-        "nom_typ_1p20V_25C":   ["pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_512x32_c2_bm_bist_typ_1p20V_25C.lib"],
-        "nom_fast_1p32V_m40C": ["pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_512x32_c2_bm_bist_fast_1p32V_m55C.lib"],
-        "nom_slow_1p08V_125C": ["pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_512x32_c2_bm_bist_slow_1p08V_125C.lib"]
+        "nom_typ_1p20V_25C":   ["pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_64x16_c2_typ_1p20V_25C.lib"],
+        "nom_fast_1p32V_m40C": ["pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_64x16_c2_fast_1p32V_m55C.lib"],
+        "nom_slow_1p08V_125C": ["pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_64x16_c2_slow_1p08V_125C.lib"]
       },
       "instances": {
-        "SRAM_A": { "location": [3.36, 3.78],  "orientation": "FS" },
-        "SRAM_B": { "location": [1200.00, 3.78], "orientation": "FS" }
+        "SRAM_A": { "location": [3.36, 3.78], "orientation": "FS" },
+        "SRAM_C": { "location": [290, 3.78], "orientation": "FS" },
+        "SRAM_B": { "location": [580, 3.78], "orientation": "FS" }
       }
     }
   },
 
   "//srams": "Two 512x32 SRAM FIFOs (one per shard, 2 KB each: Ethernet RX and TX) stacked flush left with their pin faces toward each other: SRAM[0] FS at y 3.78 (pins on top at 195.12), SRAM[1] N at y 294.84 (pins at its bottom). All 1P x32 macros share the 416.64 um width and the same power-column x positions, so the stripes on the columns serve both.",
   "ROUTING_OBSTRUCTIONS": [
-    "Metal2 3.36 3.78 420.0 195.12",
-    "Metal2 1200.00 3.78 1616.64 195.12",
-    "Metal3 3.36 3.78 420.0 195.12",
-    "Metal3 1200.00 3.78 1616.64 195.12",
-    "Metal4 3.36 3.78 420.0 195.12",
-    "Metal4 1200.00 3.78 1616.64 195.12"
+    "Metal2 3.36 3.78 240.16 68.14",   
+    "Metal3 3.36 3.78 240.16 68.14",
+    "Metal4 3.36 3.78 240.16 68.14",
+    "Metal2 290 3.78 526.8 68.14",   
+    "Metal3 290 3.78 526.8 68.14",
+    "Metal4 290 3.78 526.8 68.14",
+    "Metal2 580 3.78 816.8 68.14",   
+    "Metal3 580 3.78 816.8 68.14",
+    "Metal4 580 3.78 816.8 68.14"   
   ],
 
   "FP_PDN_VSPACING": 3.52,  
@@ -117,7 +121,9 @@
     "SRAM_A VPWR VGND VDD! VSS!",
     "SRAM_A VPWR VGND VDDARRAY! VSS!",
     "SRAM_B VPWR VGND VDD! VSS!",
-    "SRAM_B VPWR VGND VDDARRAY! VSS!"
+    "SRAM_B VPWR VGND VDDARRAY! VSS!",
+    "SRAM_C VPWR VGND VDD! VSS!",
+    "SRAM_C VPWR VGND VDDARRAY! VSS!"
   ],
 
   "RUN_MAGIC_DRC": 0,

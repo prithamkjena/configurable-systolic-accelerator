@@ -8,8 +8,8 @@ TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
 PROJECT_SOURCES = sram_test_top.v
 SRAM_MODEL_DIR = $(PWD)/ihp_sram/
-SRAM_MODELS = $(SRAM_MODEL_DIR)/RM_IHPSG13_1P_core_behavioral_bm_bist.v \
-              $(SRAM_MODEL_DIR)/RM_IHPSG13_1P_512x32_c2_bm_bist.v
+SRAM_MODELS = $(SRAM_MODEL_DIR)/RM_IHPSG13_1P_core_behavioral.v \
+              $(SRAM_MODEL_DIR)/RM_IHPSG13_1P_64x16_c2.v
 
 ifneq ($(GATES),yes)
 
