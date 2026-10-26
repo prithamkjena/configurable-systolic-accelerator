@@ -17,8 +17,16 @@ project:
   # Source files must be in ./src and you must list each source file separately, one per line.
   # Don't forget to also update `PROJECT_SOURCES` in test/Makefile.
   source_files:
-    - "sram_test_top.v"
+    - "project.v"
     - "sram_64x16_bb.v"
+    - "io_controller.v"
+    - "sram_acc_bridge.v"
+    - "systolic_acc_top.v"
+    - "systolic_acc_control.v"
+    - "pe_array.v"
+    - "PE.v"
+    - "stream_buffer.v"
+    - "output_buffer.v"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 # This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).

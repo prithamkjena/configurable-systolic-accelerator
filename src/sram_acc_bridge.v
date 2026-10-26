@@ -48,6 +48,7 @@ module sram_acc_bridge (
 
     reg [2:0] state;
     reg [5:0] count;
+    reg [287:0] c_reg;
 
     // Helper to format an 18-bit signed element into two 16-bit SRAM C words
     function [15:0] get_sram_c_word;
@@ -80,6 +81,7 @@ module sram_acc_bridge (
             acc_df_policy <= 2'b00;
             acc_A         <= 128'd0;
             acc_B         <= 128'd0;
+            c_reg         <= 288'd0;
         end else begin
             case (state)
                 S_IDLE: begin
@@ -189,6 +191,7 @@ module sram_acc_bridge (
 
                 S_WAIT_ACC: begin
                     if (acc_done) begin
+                        c_reg       <= acc_C;
                         count       <= 6'd0;
                         sram_c_addr <= 6'd0;
                         sram_c_din  <= get_sram_c_word(acc_C, 5'd0);
@@ -202,7 +205,7 @@ module sram_acc_bridge (
                     if (count < 6'd31) begin
                         count       <= count + 1'b1;
                         sram_c_addr <= count + 1'b1;
-                        sram_c_din  <= get_sram_c_word(acc_C, count[4:0] + 5'd1);
+                        sram_c_din  <= get_sram_c_word(c_reg, count[4:0] + 5'd1);
                         sram_c_wen  <= 1'b1;
                     end else begin
                         sram_c_wen <= 1'b0;
